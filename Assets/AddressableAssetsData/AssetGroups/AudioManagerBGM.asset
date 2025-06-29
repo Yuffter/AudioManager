@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: AudioManagerBGM
+  m_EditorClassIdentifier: 
+  m_GroupName: AudioManagerBGM
+  m_GUID: d3267b6d51536fd43bcb3b4a76786f3d
+  m_SerializeEntries:
+  - m_GUID: ec07610f4da1cb74bb0dea3c14012fd1
+    m_Address: Test
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 0
+  m_Settings: {fileID: 11400000, guid: 3c54617e3a521134dba376a2d369404b, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: d4507256f9e412d41bfc31ef353de414, type: 2}
+    - {fileID: 11400000, guid: 20cd2a421a044964fb4507d08aae3ea8, type: 2}
