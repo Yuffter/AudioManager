@@ -15,4 +15,6 @@ MonoBehaviour:
   _seVolume: 1
   _bgmVolume: 1
   _maxSECount: 10
+  _seAudioSourcePoolSize: 28
   _maxBGMCount: 1
+  _bgmAudioSourcePoolSize: 22

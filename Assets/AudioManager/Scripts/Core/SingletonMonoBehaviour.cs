@@ -1,7 +1,6 @@
-using Unity.VisualScripting;
 using UnityEngine;
 
-namespace AudioManager.Core
+namespace Yuffter.AudioManager.Core
 {
     [DisallowMultipleComponent]
     public abstract class SingletonMonoBehaviour<T> : MonoBehaviour where T : MonoBehaviour

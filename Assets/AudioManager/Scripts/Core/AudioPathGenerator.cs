@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace AudioManger.Core
+namespace Yuffter.AudioManger.Core
 {
     public static class AudioPathGenerator
     {
@@ -94,11 +94,82 @@ namespace AudioManger.Core
             sb.AppendLine(" {");
             foreach (var path in paths)
             {
-                sb.AppendLine($"    public static readonly string {path} = \"{path}\";");
+                string sanitizedName = SanitizeIdentifier(path);
+                sb.AppendLine($"    public const string {sanitizedName} = \"{path}\";");
             }
             sb.AppendLine("}");
             File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
             AssetDatabase.Refresh();
+        }
+
+        /// <summary>
+        /// C#の識別子として使用可能な文字列に変換する
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        private static string SanitizeIdentifier(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return "Empty";
+
+            var sb = new StringBuilder();
+            
+            // 最初の文字は英字またはアンダースコアである必要がある
+            char firstChar = input[0];
+            if (char.IsLetter(firstChar) || firstChar == '_')
+            {
+                sb.Append(firstChar);
+            }
+            else
+            {
+                sb.Append('_');
+            }
+
+            // 残りの文字を処理
+            for (int i = 1; i < input.Length; i++)
+            {
+                char c = input[i];
+                if (char.IsLetterOrDigit(c) || c == '_')
+                {
+                    sb.Append(c);
+                }
+                else
+                {
+                    sb.Append('_');
+                }
+            }
+
+            string result = sb.ToString();
+            
+            // C#のキーワードと重複する場合は@を付ける
+            if (IsCSharpKeyword(result))
+            {
+                result = "@" + result;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// C#のキーワードかどうかを判定する
+        /// </summary>
+        /// <param name="word"></param>
+        /// <returns></returns>
+        private static bool IsCSharpKeyword(string word)
+        {
+            var keywords = new HashSet<string>
+            {
+                "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked",
+                "class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else",
+                "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for",
+                "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
+                "long", "namespace", "new", "null", "object", "operator", "out", "override", "params",
+                "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
+                "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this",
+                "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort",
+                "using", "virtual", "void", "volatile", "while"
+            };
+            return keywords.Contains(word.ToLower());
         }
 
         /// <summary>

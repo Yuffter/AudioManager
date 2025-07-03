@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace AudioManager.Settings
+namespace Yuffter.AudioManager.Settings
 {
     [CreateAssetMenu(fileName = "AudioSettings", menuName = "AudioManager/AudioSettings", order = 1)]
     public class AudioSettings : ScriptableObject
@@ -30,9 +30,17 @@ namespace AudioManager.Settings
 
         [SerializeField, Header("SEの同時再生可能数")]
         private int _maxSECount = 10;
+        public int MaxSECount => _maxSECount;
+        [SerializeField, Header("SE用オーディオソースのプールサイズ")]
+        private int _seAudioSourcePoolSize = 10;
+        public int SEAudioSourcePoolSize => _seAudioSourcePoolSize;
 
         [SerializeField, Header("BGMの同時再生可能数")]
         private int _maxBGMCount = 1;
+        public int MaxBGMCount => _maxBGMCount;
+        [SerializeField, Header("BGM用オーディオソースのプールサイズ")]
+        private int _bgmAudioSourcePoolSize = 1;
+        public int BGMAudioSourcePoolSize => _bgmAudioSourcePoolSize;
 
         public void SetSEVolume(float value)
         {

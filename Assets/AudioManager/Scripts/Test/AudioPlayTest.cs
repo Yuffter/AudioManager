@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using AudioManager.Core;
+using Yuffter.AudioManager.Core;
 
 public class AudioPlayTest : MonoBehaviour
 {

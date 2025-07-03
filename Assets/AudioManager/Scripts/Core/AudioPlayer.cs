@@ -1,9 +1,9 @@
 using UnityEngine;
 
-namespace AudioManager.Core
+namespace Yuffter.AudioManager.Core
 {
-    using Settings;
-    public class AudioPlayer
+    using Yuffter.AudioManager.Settings;
+    public sealed class AudioPlayer
     {
         private readonly AudioSource _audioSource;
         private float _baseVolume = 1f;
