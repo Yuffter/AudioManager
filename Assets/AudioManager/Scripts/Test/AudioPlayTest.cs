@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using Yuffter.AudioManager.BGM;
 using Yuffter.AudioManager.Core;
+using Yuffter.AudioManager.SE;
 
 public class AudioPlayTest : MonoBehaviour
 {
@@ -24,14 +26,16 @@ public class AudioPlayTest : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.X))
         {
-            _audioPlayer.FadeOut(1);
+            BGMManager.Instance.PauseAll();
+        }
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            BGMManager.Instance.ResumeAll();
         }
     }
 
     private async void Play()
     {
-        var handle = Addressables.LoadAssetAsync<AudioClip>(_testAudioClip);
-        AudioClip result = await handle.Task;
-        _audioPlayer.Play(result, 1, 1f, true);
+        BGMManager.Instance.Play(BGMPath.Test, 1f, 1f, true);
     }
 }

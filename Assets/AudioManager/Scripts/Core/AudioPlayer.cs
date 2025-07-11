@@ -6,7 +6,9 @@ namespace Yuffter.AudioManager.Core
     public sealed class AudioPlayer
     {
         private readonly AudioSource _audioSource;
+        public AudioSource AudioSource => _audioSource;
         private float _baseVolume = 1f;
+        public float BaseVolume => _baseVolume;
         public AudioPlayer(AudioSource audioSource)
         {
             _audioSource = audioSource;
