@@ -223,7 +223,3 @@ private void OnDestroy()
 ## 🤝 貢献
 
 このプロジェクトへの貢献を歓迎します。Issues や Pull Requests をお気軽にお送りください。
-
-## 📄 ライセンス
-
-このプロジェクトは MIT ライセンスの下で公開されています。
