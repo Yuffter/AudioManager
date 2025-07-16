@@ -23,6 +23,13 @@ namespace Yuffter.AudioManager.SE
             }
         }
 
+        /// <summary>
+        /// 指定したSEを再生する
+        /// </summary>
+        /// <param name="path">SEPATH</param>
+        /// <param name="volume">音量</param>
+        /// <param name="pitch">ピッチ</param>
+        /// <param name="loop">ループ再生フラグ</param>
         public void Play(string path, float volume = 1f, float pitch = 1f, bool loop = false)
         {
             if (string.IsNullOrEmpty(path))
@@ -69,6 +76,9 @@ namespace Yuffter.AudioManager.SE
             }
         }
 
+        /// <summary>
+        /// キャッシュしているAudioClipを解放する
+        /// </summary>
         public void Release()
         {
             foreach (var kvp in _audioClipCache)
@@ -78,6 +88,10 @@ namespace Yuffter.AudioManager.SE
             _audioClipCache.Clear();
         }
 
+        /// <summary>
+        /// 指定したSEを停止する
+        /// </summary>
+        /// <param name="path">SEPATH</param>
         public void Stop(string path)
         {
             /* AudioPlayerのうち、指定されたAudioClipを再生しているものを探す */
@@ -92,6 +106,9 @@ namespace Yuffter.AudioManager.SE
             }
         }
 
+        /// <summary>
+        /// 全てのSEを停止する
+        /// </summary>
         public void StopAll()
         {
             foreach (var audioPlayer in _audioPlayerList)
@@ -103,6 +120,9 @@ namespace Yuffter.AudioManager.SE
             }
         }
 
+        /// <summary>
+        /// 全てのSEを一時停止する
+        /// </summary>
         public void PauseAll()
         {
             foreach (var audioPlayer in _audioPlayerList)
@@ -114,6 +134,9 @@ namespace Yuffter.AudioManager.SE
             }
         }
 
+        /// <summary>
+        /// 全てのSEを再開する
+        /// </summary>
         public void ResumeAll()
         {
             foreach (var audioPlayer in _audioPlayerList)
@@ -125,6 +148,10 @@ namespace Yuffter.AudioManager.SE
             }
         }
 
+        /// <summary>
+        /// 音量を設定する
+        /// </summary>
+        /// <param name="volume">音量</param>
         public void SetVolume(float volume)
         {
             if (volume < 0f || volume > 1f)
