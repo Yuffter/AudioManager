@@ -15,7 +15,7 @@ namespace Yuffter.AudioManger.Core
         private const string BGM_GROUP_NAME = "AudioManagerBGM";
         private static List<string> seAddressList = new();
         private static List<string> bgmAddressList = new();
-        [MenuItem("Jobs/AudioManager/Update SE Paths")]
+        [MenuItem("Tools/AudioManager/Update SE Paths")]
         public static void UpdateSEPaths()
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
@@ -44,7 +44,7 @@ namespace Yuffter.AudioManger.Core
             WriteAudioPathsToFile(seAddressList, SE_PATH, "SEPath");
         }
 
-        [MenuItem("Jobs/AudioManager/Update BGM Paths")]
+        [MenuItem("Tools/AudioManager/Update BGM Paths")]
         public static void UpdateBGMPaths()
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;
@@ -73,7 +73,7 @@ namespace Yuffter.AudioManger.Core
             WriteAudioPathsToFile(bgmAddressList, BGM_PATH, "BGMPath");
         }
 
-        [MenuItem("Jobs/AudioManager/Update All Audio Paths")]
+        [MenuItem("Tools/AudioManager/Update All Audio Paths")]
         public static void UpdateAllAudioPaths()
         {
             UpdateSEPaths();

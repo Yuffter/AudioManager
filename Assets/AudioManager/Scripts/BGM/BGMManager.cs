@@ -12,6 +12,10 @@ namespace Yuffter.AudioManager.BGM
     {
         private List<AudioPlayer> _audioPlayerList = new();
         private Dictionary<string, AudioClip> _audioClipCache = new();
+
+        /// <summary>
+        /// アプリ起動時に自動で初期化する
+        /// </summary>
         [RuntimeInitializeOnLoadMethod]
         private static void InitializeStatic()
         {
@@ -29,6 +33,9 @@ namespace Yuffter.AudioManager.BGM
             Initialize();
         }
 
+        /// <summary>
+        /// BGMManagerを初期化する
+        /// </summary>
         public void Initialize()
         {
             /* AudioSourceをプールするために生成する */
