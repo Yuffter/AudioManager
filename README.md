@@ -205,7 +205,7 @@ private void OnDestroy()
    - オーディオファイルの形式がサポートされているか確認（mp3, wav, ogg）
 
 2. **パスクラスが生成されない**
-   - `Jobs > AudioManager > Update All Audio Paths` を実行
+   - `Tools > AudioManager > Update All Audio Paths` を実行
    - Addressablesのグループ名が正しいか確認（`AudioManagerSE`, `AudioManagerBGM`）
 
 3. **音量が変更されない**
