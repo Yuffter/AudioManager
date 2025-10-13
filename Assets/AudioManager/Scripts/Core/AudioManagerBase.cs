@@ -6,7 +6,7 @@ namespace Yuffter.AudioManager.Core
     public interface IAudioManager
     {
         void Initialize();
-        void Play(string path, float volume = 1f, float pitch = 1f, bool loop = false);
+        void Play(string path, float volume = 1f, float pitch = 1f, bool loop = false, bool allowPlayAcrossScenes = false);
         void Stop(string path);
         void StopAll();
         // void SetVolume(float volume);
