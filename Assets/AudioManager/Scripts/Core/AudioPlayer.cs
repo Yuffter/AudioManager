@@ -9,6 +9,8 @@ namespace Yuffter.AudioManager.Core
         public AudioSource AudioSource => _audioSource;
         private float _baseVolume = 1f;
         public float BaseVolume => _baseVolume;
+        private bool _allowPlayAcrossScenes = false;
+        public bool AllowPlayAcrossScenes => _allowPlayAcrossScenes;
         public AudioPlayer(AudioSource audioSource)
         {
             _audioSource = audioSource;
@@ -19,7 +21,7 @@ namespace Yuffter.AudioManager.Core
             return _audioSource.isPlaying;
         }
 
-        public void Play(AudioClip clip, float volume = 1f, float pitch = 1f, bool loop = false)
+        public void Play(AudioClip clip, float volume = 1f, float pitch = 1f, bool loop = false, bool allowPlayAcrossScenes = false)
         {
             if (clip == null)
             {
@@ -30,6 +32,7 @@ namespace Yuffter.AudioManager.Core
             SetVolume(volume);
             SetPitch(pitch);
             SetLoop(loop);
+            SetAllowPlayAcrossScenes(allowPlayAcrossScenes);
             _audioSource.Play();
         }
 
@@ -65,6 +68,11 @@ namespace Yuffter.AudioManager.Core
                 return;
             }
             _audioSource.pitch = pitch;
+        }
+
+        private void SetAllowPlayAcrossScenes(bool allowPlayAcrossScenes)
+        {
+            _allowPlayAcrossScenes = allowPlayAcrossScenes;
         }
 
         public async void FadeIn(float duration)

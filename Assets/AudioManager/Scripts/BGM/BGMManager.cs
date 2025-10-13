@@ -1,16 +1,15 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Yuffter.AudioManager;
-using Yuffter.AudioManager.Core;
 using UnityEngine.AddressableAssets;
 using System.Threading.Tasks;
-using Yuffter.AudioManager.Settings;
+using UnityEngine.SceneManagement;
 
 namespace Yuffter.AudioManager.BGM
 {
     public sealed class BGMManager : Core.SingletonMonoBehaviour<BGMManager>, Core.IAudioManager
     {
-        private List<AudioPlayer> _audioPlayerList = new();
+        private List<Core.AudioPlayer> _audioPlayerList = new();
         private Dictionary<string, AudioClip> _audioClipCache = new();
 
         /// <summary>
@@ -49,9 +48,12 @@ namespace Yuffter.AudioManager.BGM
                 AudioSource audioSource = bgmAudioSourceContainer.AddComponent<AudioSource>();
                 audioSource.playOnAwake = false;
                 audioSource.loop = true; // BGMはループ再生
-                AudioPlayer audioPlayer = new AudioPlayer(audioSource);
+                Core.AudioPlayer audioPlayer = new Core.AudioPlayer(audioSource);
                 _audioPlayerList.Add(audioPlayer);
             }
+
+            /* シーンが読み込まれたときにシーンをまたいだ再生を許可していないものを停止する */
+            SceneManager.sceneLoaded += (scene, mode) => StopDisallowBGM();
         }
 
         /// <summary>
@@ -61,7 +63,7 @@ namespace Yuffter.AudioManager.BGM
         /// <param name="volume">音量</param>
         /// <param name="pitch">ピッチ</param>
         /// <param name="loop">ループ再生フラグ</param>
-        public void Play(string path, float volume = 1f, float pitch = 1f, bool loop = true)
+        public void Play(string path, float volume = 1f, float pitch = 1f, bool loop = true, bool allowPlayAcrossScenes = false)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -69,10 +71,10 @@ namespace Yuffter.AudioManager.BGM
                 return;
             }
             // BGMはループ再生なので、loopは常にtrue
-            _Play(path, volume, pitch, loop);
+            _Play(path, volume, pitch, loop, allowPlayAcrossScenes);
         }
 
-        public async void _Play(string path, float volume = 1f, float pitch = 1f, bool loop = true)
+        public async void _Play(string path, float volume = 1f, float pitch = 1f, bool loop = true, bool allowPlayAcrossScenes = false)
         {
             AudioClip audioClip = await GetAudioClip(path);
             if (audioClip == null)
@@ -81,14 +83,14 @@ namespace Yuffter.AudioManager.BGM
                 return;
             }
 
-            AudioPlayer audioPlayer = _audioPlayerList.Find(player => !player.IsPlaying());
+            Core.AudioPlayer audioPlayer = _audioPlayerList.Find(player => !player.IsPlaying());
             if (audioPlayer == null)
             {
                 Debug.LogWarning("No available AudioPlayer found. Consider increasing the pool size.");
                 return;
             }
 
-            audioPlayer.Play(audioClip, volume, pitch, loop);
+            audioPlayer.Play(audioClip, volume, pitch, loop, allowPlayAcrossScenes);
         }
 
         private async Task<AudioClip> GetAudioClip(string path)
@@ -125,7 +127,7 @@ namespace Yuffter.AudioManager.BGM
         public void Stop(string path)
         {
             /* AudioPlayerのうち、指定されたAudioClipを再生しているものを探す */
-            AudioPlayer audioPlayer = _audioPlayerList.Find(player => player.IsPlaying() && player.AudioSource.clip.name == _audioClipCache[path].name);
+            Core.AudioPlayer audioPlayer = _audioPlayerList.Find(player => player.IsPlaying() && player.AudioSource.clip.name == _audioClipCache[path].name);
             if (audioPlayer != null)
             {
                 audioPlayer.Stop();
@@ -193,6 +195,16 @@ namespace Yuffter.AudioManager.BGM
             foreach (var audioPlayer in _audioPlayerList)
             {
                 audioPlayer.SetVolume(audioPlayer.BaseVolume * Settings.AudioSettings.Instance.BGMVolume);
+            }
+        }
+
+        private void StopDisallowBGM()
+        {
+            foreach (var audioPlayer in _audioPlayerList)
+            {
+                if (audioPlayer.IsPlaying() == false  || audioPlayer.AllowPlayAcrossScenes) continue;
+
+                audioPlayer.Stop();
             }
         }
     }

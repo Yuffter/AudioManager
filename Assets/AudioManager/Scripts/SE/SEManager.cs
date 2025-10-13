@@ -1,16 +1,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Yuffter.AudioManager;
-using Yuffter.AudioManager.Core;
 using UnityEngine.AddressableAssets;
 using System.Threading.Tasks;
-using Yuffter.AudioManager.Settings;
+using UnityEngine.SceneManagement;
 
 namespace Yuffter.AudioManager.SE
 {
     public sealed class SEManager : Core.SingletonMonoBehaviour<SEManager>, Core.IAudioManager
     {
-        private List<AudioPlayer> _audioPlayerList = new();
+        private List<Core.AudioPlayer> _audioPlayerList = new();
         private Dictionary<string, AudioClip> _audioClipCache = new();
         [RuntimeInitializeOnLoadMethod]
         private static void InitializeStatic()
@@ -23,6 +22,32 @@ namespace Yuffter.AudioManager.SE
             }
         }
 
+        protected override void Awake()
+        {
+            base.Awake();
+            Initialize();
+        }
+        public void Initialize()
+        {
+            /* AudioSourceをプールするために生成する */
+            _audioPlayerList = new();
+            _audioClipCache = new();
+            int poolSize = Settings.AudioSettings.Instance.SEAudioSourcePoolSize;
+            GameObject seAudioSourceContainer = new GameObject("SEAudioSourceContainer");
+            DontDestroyOnLoad(seAudioSourceContainer);
+            for (int i = 0; i < poolSize; i++)
+            {
+                AudioSource audioSource = seAudioSourceContainer.AddComponent<AudioSource>();
+                audioSource.playOnAwake = false;
+                audioSource.loop = false;
+                Core.AudioPlayer audioPlayer = new Core.AudioPlayer(audioSource);
+                _audioPlayerList.Add(audioPlayer);
+            }
+
+            /* シーンが読み込まれたときにシーンをまたいだ再生を許可していないものを停止する */
+            SceneManager.sceneLoaded += (scene, mode) => StopDisallowSE();
+        }
+
         /// <summary>
         /// 指定したSEを再生する
         /// </summary>
@@ -30,18 +55,18 @@ namespace Yuffter.AudioManager.SE
         /// <param name="volume">音量</param>
         /// <param name="pitch">ピッチ</param>
         /// <param name="loop">ループ再生フラグ</param>
-        public void Play(string path, float volume = 1f, float pitch = 1f, bool loop = false)
+        public void Play(string path, float volume = 1f, float pitch = 1f, bool loop = false, bool allowPlayAcrossScenes = false)
         {
             if (string.IsNullOrEmpty(path))
             {
                 Debug.LogWarning("Audio path is null or empty.");
                 return;
             }
-            _Play(path, volume, pitch, loop);
+            _Play(path, volume, pitch, loop, allowPlayAcrossScenes);
         }
         
         
-        public async void _Play(string path, float volume = 1f, float pitch = 1f, bool loop = false)
+        public async void _Play(string path, float volume = 1f, float pitch = 1f, bool loop = false, bool allowPlayAcrossScenes = false)
         {
             AudioClip audioClip = await GetAudioClip(path);
             if (audioClip == null)
@@ -50,14 +75,14 @@ namespace Yuffter.AudioManager.SE
                 return;
             }
 
-            AudioPlayer audioPlayer = _audioPlayerList.Find(player => !player.IsPlaying());
+            Core.AudioPlayer audioPlayer = _audioPlayerList.Find(player => !player.IsPlaying());
             if (audioPlayer == null)
             {
                 Debug.LogWarning("No available AudioPlayer found. Consider increasing the pool size.");
                 return;
             }
 
-            audioPlayer.Play(audioClip, volume, pitch, loop);
+            audioPlayer.Play(audioClip, volume, pitch, loop, allowPlayAcrossScenes);
         }
 
 
@@ -95,7 +120,7 @@ namespace Yuffter.AudioManager.SE
         public void Stop(string path)
         {
             /* AudioPlayerのうち、指定されたAudioClipを再生しているものを探す */
-            AudioPlayer audioPlayer = _audioPlayerList.Find(player => player.IsPlaying() && player.AudioSource.clip.name == _audioClipCache[path].name);
+            Core.AudioPlayer audioPlayer = _audioPlayerList.Find(player => player.IsPlaying() && player.AudioSource.clip.name == _audioClipCache[path].name);
             if (audioPlayer != null)
             {
                 audioPlayer.Stop();
@@ -166,26 +191,13 @@ namespace Yuffter.AudioManager.SE
             }
         }
 
-        protected override void Awake()
+        private void StopDisallowSE()
         {
-            base.Awake();
-            Initialize();
-        }
-        public void Initialize()
-        {
-            /* AudioSourceをプールするために生成する */
-            _audioPlayerList = new();
-            _audioClipCache = new();
-            int poolSize = Settings.AudioSettings.Instance.SEAudioSourcePoolSize;
-            GameObject seAudioSourceContainer = new GameObject("SEAudioSourceContainer");
-            DontDestroyOnLoad(seAudioSourceContainer);
-            for (int i = 0; i < poolSize; i++)
+            foreach (var audioPlayer in _audioPlayerList)
             {
-                AudioSource audioSource = seAudioSourceContainer.AddComponent<AudioSource>();
-                audioSource.playOnAwake = false;
-                audioSource.loop = false;
-                AudioPlayer audioPlayer = new AudioPlayer(audioSource);
-                _audioPlayerList.Add(audioPlayer);
+                if (audioPlayer.IsPlaying() == false  || audioPlayer.AllowPlayAcrossScenes) continue;
+
+                audioPlayer.Stop();
             }
         }
     }

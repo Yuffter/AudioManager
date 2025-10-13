@@ -15,7 +15,7 @@ namespace Yuffter.AudioManager.Settings
                     _instance = Resources.Load<AudioSettings>("AudioSettings");
                     if (_instance == null)
                     {
-                        Debug.LogError("AudioSettings not found. Please create an AudioSettings asset.");
+                        Debug.LogError("AudioSettingsが見つかりません。AudioSettingsを作成してください。");
                     }
                 }
                 return _instance;
@@ -23,23 +23,41 @@ namespace Yuffter.AudioManager.Settings
         }
         [SerializeField, Header("SE音量"), Range(0f, 1f)]
         private float _seVolume;
+        /// <summary>
+        /// SE音量
+        /// </summary>
         public float SEVolume => _seVolume;
         [SerializeField, Header("BGM音量"), Range(0f, 1f)]
         private float _bgmVolume;
+        /// <summary>
+        /// BGM音量
+        /// </summary>
         public float BGMVolume => _bgmVolume;
 
         [SerializeField, Header("SEの同時再生可能数")]
         private int _maxSECount = 10;
+        /// <summary>
+        /// SEの同時再生可能数
+        /// </summary>
         public int MaxSECount => _maxSECount;
         [SerializeField, Header("SE用オーディオソースのプールサイズ")]
         private int _seAudioSourcePoolSize = 10;
+        /// <summary>
+        /// SE用オーディオソースのプールサイズ
+        /// </summary>
         public int SEAudioSourcePoolSize => _seAudioSourcePoolSize;
 
         [SerializeField, Header("BGMの同時再生可能数")]
         private int _maxBGMCount = 1;
+        /// <summary>
+        /// BGMの同時再生可能数
+        /// </summary>
         public int MaxBGMCount => _maxBGMCount;
         [SerializeField, Header("BGM用オーディオソースのプールサイズ")]
         private int _bgmAudioSourcePoolSize = 1;
+        /// <summary>
+        /// BGM用オーディオソースのプールサイズ
+        /// </summary>
         public int BGMAudioSourcePoolSize => _bgmAudioSourcePoolSize;
 
         public void SetSEVolume(float value)
