@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
@@ -7,6 +8,9 @@ using System.Text;
 
 namespace Yuffter.AudioManger.Core
 {
+    /// <summary>
+    /// Addressable Assetsに登録されているBGM及びSEのパスを自動プログラムするクラス
+    /// </summary>
     public static class AudioPathGenerator
     {
         private const string SE_PATH = "Assets/AudioManager/Scripts/SE/";
@@ -15,6 +19,10 @@ namespace Yuffter.AudioManger.Core
         private const string BGM_GROUP_NAME = "AudioManagerBGM";
         private static List<string> seAddressList = new();
         private static List<string> bgmAddressList = new();
+
+        /// <summary>
+        /// SEのパスを更新する
+        /// </summary>
         [MenuItem("Tools/AudioManager/Update SE Paths")]
         public static void UpdateSEPaths()
         {
@@ -23,11 +31,13 @@ namespace Yuffter.AudioManger.Core
 
             foreach (var group in settings.groups)
             {
+                // SEグループに絞る
                 if (group.name != SE_GROUP_NAME)
                 {
                     continue;
                 }
 
+                // 登録されている全てのアセットについて、追加処理を行う
                 foreach (var entry in group.entries)
                 {
                     /* mp3, wav, oggのみに限定する */
@@ -44,6 +54,9 @@ namespace Yuffter.AudioManger.Core
             WriteAudioPathsToFile(seAddressList, SE_PATH, "SEPath");
         }
 
+        /// <summary>
+        /// BGMのパスを更新する
+        /// </summary>
         [MenuItem("Tools/AudioManager/Update BGM Paths")]
         public static void UpdateBGMPaths()
         {
@@ -52,11 +65,13 @@ namespace Yuffter.AudioManger.Core
 
             foreach (var group in settings.groups)
             {
+                // BGMグループに絞る
                 if (group.name != BGM_GROUP_NAME)
                 {
                     continue;
                 }
 
+                // 登録されている全てのアセットについて、追加処理を行う
                 foreach (var entry in group.entries)
                 {
                     /* mp3, wav, oggのみに限定する */
@@ -73,6 +88,9 @@ namespace Yuffter.AudioManger.Core
             WriteAudioPathsToFile(bgmAddressList, BGM_PATH, "BGMPath");
         }
 
+        /// <summary>
+        /// BGM, SE両方のパスを更新する
+        /// </summary>
         [MenuItem("Tools/AudioManager/Update All Audio Paths")]
         public static void UpdateAllAudioPaths()
         {
@@ -80,6 +98,12 @@ namespace Yuffter.AudioManger.Core
             UpdateBGMPaths();
         }
 
+        /// <summary>
+        /// プログラムファイルとしてパスを自動生成する
+        /// </summary>
+        /// <param name="paths"></param>
+        /// <param name="folderPath"></param>
+        /// <param name="fileName"></param>
         private static void WriteAudioPathsToFile(List<string> paths, string folderPath, string fileName)
         {
             string filePath = System.IO.Path.Combine(folderPath, fileName + ".cs");
@@ -113,7 +137,7 @@ namespace Yuffter.AudioManger.Core
                 return "Empty";
 
             var sb = new StringBuilder();
-            
+
             // 最初の文字は英字またはアンダースコアである必要がある
             char firstChar = input[0];
             if (char.IsLetter(firstChar) || firstChar == '_')
@@ -140,7 +164,7 @@ namespace Yuffter.AudioManger.Core
             }
 
             string result = sb.ToString();
-            
+
             // C#のキーワードと重複する場合は@を付ける
             if (IsCSharpKeyword(result))
             {
@@ -184,3 +208,4 @@ namespace Yuffter.AudioManger.Core
         }
     }
 }
+#endif

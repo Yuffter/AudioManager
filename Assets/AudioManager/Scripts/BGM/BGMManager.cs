@@ -7,10 +7,15 @@ using UnityEngine.SceneManagement;
 
 namespace Yuffter.AudioManager.BGM
 {
+    /// <summary>
+    /// BGM再生を行うマネージャークラス
+    /// </summary>
     public sealed class BGMManager : Core.SingletonMonoBehaviour<BGMManager>, Core.IAudioManager
     {
         private List<Core.AudioPlayer> _audioPlayerList = new();
+        // 一度読み込んだAudioClipをキャッシュしておくための辞書
         private Dictionary<string, AudioClip> _audioClipCache = new();
+        private const string BGM_GROUP_NAME = "AudioManagerBGM";
 
         /// <summary>
         /// アプリ起動時に自動で初期化する
@@ -20,6 +25,7 @@ namespace Yuffter.AudioManager.BGM
         {
             if (Instance == null)
             {
+                // 起動時にBGM再生用オブジェクトを生成する
                 GameObject bgmManagerObject = new GameObject("BGMManager");
                 DontDestroyOnLoad(bgmManagerObject);
                 bgmManagerObject.AddComponent<BGMManager>();
@@ -30,6 +36,7 @@ namespace Yuffter.AudioManager.BGM
         {
             base.Awake();
             Initialize();
+            Preload();
         }
 
         /// <summary>
@@ -54,6 +61,53 @@ namespace Yuffter.AudioManager.BGM
 
             /* シーンが読み込まれたときにシーンをまたいだ再生を許可していないものを停止する */
             SceneManager.sceneLoaded += (scene, mode) => StopDisallowBGM();
+        }
+
+        public async void Preload()
+        {
+            var handles = Addressables.LoadResourceLocationsAsync("BGM", typeof(AudioClip));
+            await handles.Task;
+            List<Task> loadTasks = new List<Task>();
+
+            foreach (var location in handles.Result)
+            {
+                loadTasks.Add(PreloadAudioClip(location.PrimaryKey));
+                Debug.Log($"Preloading BGM: {location.PrimaryKey}");
+            }
+
+            // 全てのBGMの読み込み完了を待つ
+            await Task.WhenAll(loadTasks);
+            Debug.Log($"BGM Preload completed. Cached {_audioClipCache.Count} clips.");
+        }
+
+        private async Task PreloadAudioClip(string address)
+        {
+            try
+            {
+                var handle = Addressables.LoadAssetAsync<AudioClip>(address);
+                AudioClip audioClip = await handle.Task;
+                if (audioClip != null)
+                {
+                    _audioClipCache[address] = audioClip;
+                    Debug.Log($"Preloaded BGM: {address}");
+                }
+                else
+                {
+                    Debug.LogError($"Failed to load AudioClip: {address}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error loading AudioClip {address}: {ex.Message}");
+            }
+        }
+
+        private bool IsAudioFile(string assetPath)
+        {
+            if (string.IsNullOrEmpty(assetPath)) return false;
+            
+            string extension = System.IO.Path.GetExtension(assetPath).ToLower();
+            return extension == ".mp3" || extension == ".wav" || extension == ".ogg";
         }
 
         /// <summary>

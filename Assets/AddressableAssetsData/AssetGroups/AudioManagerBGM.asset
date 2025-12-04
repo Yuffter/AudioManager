@@ -18,7 +18,8 @@ MonoBehaviour:
   - m_GUID: ec07610f4da1cb74bb0dea3c14012fd1
     m_Address: Test
     m_ReadOnly: 0
-    m_SerializedLabels: []
+    m_SerializedLabels:
+    - BGM
     FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 3c54617e3a521134dba376a2d369404b, type: 2}

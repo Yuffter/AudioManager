@@ -5,12 +5,14 @@ using UnityEngine.AddressableAssets;
 using System.Threading.Tasks;
 using UnityEngine.SceneManagement;
 
+
 namespace Yuffter.AudioManager.SE
 {
     public sealed class SEManager : Core.SingletonMonoBehaviour<SEManager>, Core.IAudioManager
     {
         private List<Core.AudioPlayer> _audioPlayerList = new();
         private Dictionary<string, AudioClip> _audioClipCache = new();
+        private const string SE_GROUP_NAME = "AudioManagerSE";
         [RuntimeInitializeOnLoadMethod]
         private static void InitializeStatic()
         {
@@ -26,6 +28,7 @@ namespace Yuffter.AudioManager.SE
         {
             base.Awake();
             Initialize();
+            Preload();
         }
         public void Initialize()
         {
@@ -46,6 +49,53 @@ namespace Yuffter.AudioManager.SE
 
             /* シーンが読み込まれたときにシーンをまたいだ再生を許可していないものを停止する */
             SceneManager.sceneLoaded += (scene, mode) => StopDisallowSE();
+        }
+
+        public async void Preload()
+        {
+            var handles = Addressables.LoadResourceLocationsAsync("SE", typeof(AudioClip));
+            await handles.Task;
+            List<Task> loadTasks = new List<Task>();
+
+            foreach (var location in handles.Result)
+            {
+                loadTasks.Add(PreloadAudioClip(location.PrimaryKey));
+                Debug.Log($"Preloading SE: {location.PrimaryKey}");
+            }
+
+            // 全てのBGMの読み込み完了を待つ
+            await Task.WhenAll(loadTasks);
+            Debug.Log($"SE Preload completed. Cached {_audioClipCache.Count} clips.");
+        }
+
+        private async Task PreloadAudioClip(string address)
+        {
+            try
+            {
+                var handle = Addressables.LoadAssetAsync<AudioClip>(address);
+                AudioClip audioClip = await handle.Task;
+                if (audioClip != null)
+                {
+                    _audioClipCache[address] = audioClip;
+                    Debug.Log($"Preloaded BGM: {address}");
+                }
+                else
+                {
+                    Debug.LogError($"Failed to load AudioClip: {address}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error loading AudioClip {address}: {ex.Message}");
+            }
+        }
+
+        private bool IsAudioFile(string assetPath)
+        {
+            if (string.IsNullOrEmpty(assetPath)) return false;
+            
+            string extension = System.IO.Path.GetExtension(assetPath).ToLower();
+            return extension == ".mp3" || extension == ".wav" || extension == ".ogg";
         }
 
         /// <summary>
