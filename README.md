@@ -179,3 +179,7 @@ AudioManager.Instance.UnloadSeBank();
 
 - 本ライブラリには CLI ビルドスクリプトはありません。Unity エディタ(6000.0.41f1)で開いて利用します。
 - `AudioClip` を再生するには、必ず `AudioLibrary` のエントリと Addressables 参照を設定してください。
+
+## ライセンス
+
+[MIT License](LICENSE) の下で公開しています。
