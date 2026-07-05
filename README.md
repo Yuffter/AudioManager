@@ -78,7 +78,7 @@ Tools > AudioManager > Generate Enums
 ```csharp
 using Yuffter.AudioManager;
 
-// 完了を待つ場合
+// クリップのロード完了を待つ場合（await はロード完了時点で戻る。再生の終了は待たない）
 await AudioManager.Instance.PlaySe(Se.ButtonClick);
 
 // 撃ちっぱなし(await しない)
@@ -171,7 +171,7 @@ AudioManager.Instance.UnloadSeBank();
 
 ### 設計上のポイント
 
-- **再生 API が async なのは Addressables のロードが非同期だから。** クリップの実体はメモリに載っていないため、`PlaySe` / `PlayBgm` はロード完了後に再生します。2 回目以降はキャッシュから即返ります。待ちたくない場合は `await` を省けます。
+- **再生 API が async なのは Addressables のロードが非同期だから。** クリップの実体はメモリに載っていないため、`PlaySe` / `PlayBgm` はロード完了後に再生を開始します。`await` が待つのは**クリップのロード完了まで**で、再生の終了は待ちません(戻り値は再生開始直後の `AudioHandle`)。2 回目以降はキャッシュから即返るため、待ちたくない場合は `await` を省けます。
 - **BGM はシングルボイス。** `AudioManager` が現在の BGM を追跡し、切り替え時に旧曲をフェードアウトしてクリップを解放します。SE は多重再生されるポリフォニックなボイスです。
 - **ハンドルは世代でガード。** `AudioSourceController` は再生・解放のたびに `Generation` を進め、`AudioHandle` は取得時の世代と一致するときだけ有効です。プールで再利用済みのソースへの操作は安全に無視されます。
 

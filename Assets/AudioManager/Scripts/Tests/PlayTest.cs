@@ -7,7 +7,7 @@ public class PlayTest : MonoBehaviour
     async void Start()
     {
         await AudioManager.Instance.PlaySe(Se.Test);
-        Debug.Log("SE再生完了");
+        Debug.Log("SEロード完了・再生開始");
         AudioManager.Instance.PlayBgm(Bgm.Test, PlayParams.Default);
     }
 
