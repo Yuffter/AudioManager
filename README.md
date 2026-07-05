@@ -1,232 +1,181 @@
-# Unity AudioManager System
+# Unity AudioManager
 
-Unity向けの高機能なオーディオ管理システムです。Addressables対応、オブジェクトプール、自動パス生成など、プロフェッショナルなゲーム開発に必要な機能を提供します。
+Addressables ベースの Unity 向けオーディオ管理ライブラリです。SE / BGM の再生を、型安全な enum・オブジェクトプール・非同期ロード・ミキサー連動の音量制御でまとめて扱えます。
 
-## 必須ライブラリ
-- Addressables
+- **Unity 6000.0.41f1 (Unity 6)** / Universal Render Pipeline
+- 依存: `com.unity.addressables`
+- 名前空間: `Yuffter.AudioManager`
 
-## 🎵 主な機能
+## 特徴
 
-- **SE (Sound Effect) 管理**: 効果音の再生・停止・音量制御
-- **BGM (Background Music) 管理**: 背景音楽の再生・停止・音量制御・フェード機能
-- **Addressables対応**: 非同期読み込みとメモリ効率的な管理
-- **オブジェクトプール**: AudioSourceの効率的な再利用
-- **自動パス生成**: 型安全なオーディオファイルパス管理
-- **設定管理**: 音量設定とプール数の調整
+- **型安全な ID** — `AudioLibrary`(ScriptableObject) に登録した音源から `Se` / `Bgm` enum を自動生成。文字列パス指定は不要。
+- **非同期ロード** — クリップは `AssetReferenceT<AudioClip>` 経由で Addressables から非同期ロードし、内部でキャッシュ。
+- **オブジェクトプール** — `AudioSource` を使い回し、再生ごとの生成コストを排除。
+- **世代管理ハンドル** — 再生中の 1 音を指す軽量な `AudioHandle` で、停止・フェードアウト・音量変更を安全に操作。
+- **ミキサー連動の音量制御** — Master / SE / BGM をリニア値(0〜1)で設定でき、内部で dB に変換して `AudioMixer` へ反映。設定は `PlayerPrefs` に自動保存。
+- **BGM のシングルボイス管理** — BGM の切り替え時に旧曲を自動でフェードアウトし、クリップを解放。
 
-## 🚀 セットアップ
+## インストール
 
-### 1. 基本設定
+[Releases](../../releases) から最新の `AudioManager-vX.Y.Z.unitypackage` をダウンロードし、Unity プロジェクトにインポートします。
 
-AudioManagerは自動的に初期化されます。特別な設定は不要です。
+1. `.unitypackage` をダウンロード
+2. Unity で `Assets > Import Package > Custom Package...` から取り込む(またはファイルをプロジェクトにドラッグ&ドロップ)
+3. `AudioManager` フォルダ一式(スクリプト・`AudioMixer` ・プレハブ)がプロジェクトに追加される
+
+> 事前に Package Manager で **Addressables** を導入しておいてください。
+
+各バージョンのパッケージは、`v*` タグの push をトリガーに GitHub Actions(`.github/workflows/release-unitypackage.yml`)で自動ビルドされ、Release に添付されます。
+
+## セットアップ
+
+### 1. 音源を Addressables に登録
+
+再生したい `AudioClip` を Addressables グループに追加します(SE 用 `AudioManagerSE`、BGM 用 `AudioManagerBGM` を想定)。
+
+### 2. AudioLibrary を作成して音源を登録
+
+`Create > Yuffter/AudioManager/Audio Library` で `AudioLibrary` アセットを作成し、`Entries` に音源を追加します。各エントリの項目:
+
+| フィールド | 説明 |
+|-----------|------|
+| `Key` | enum 名になる識別子(例: `ButtonClick`) |
+| `Category` | `Se` または `Bgm` |
+| `Clip` | `AssetReferenceT<AudioClip>`(Addressables 参照) |
+| `Volume` / `Pitch` | 既定の音量・ピッチ |
+| `Loop` | 既定でループするか |
+| `SpatialBlend` | 0 = 2D / 1 = 3D |
+
+`Id` はエントリ追加時に自動で採番されます(`OnValidate`)。**並び替えても ID は変わらない**ため、参照が壊れません。
+
+### 3. enum を生成
+
+`AudioLibrary` を保存すると `Assets/AudioManager/Generated/AudioIds.cs` が**自動再生成**されます。手動で再生成する場合はメニューから:
+
+```
+Tools > AudioManager > Generate Enums
+```
+
+これで `enum Se` / `enum Bgm` が生成され、`Se.ButtonClick` のように参照できます。
+
+> `AudioIds.cs` は自動生成ファイルです。直接編集せず、`AudioLibrary` を編集してください。
+
+### 4. シーンに AudioManager を配置
+
+`AudioManager` コンポーネントをシーンに 1 つ配置し、インスペクタで次を割り当てます:
+
+- `Library` … 作成した `AudioLibrary`
+- `Mixer` … `AudioMixer`(`MasterVol` / `SeVol` / `BgmVol` を公開パラメータとして設定しておく)
+- `Se Group` / `Bgm Group` … ミキサーの各 `AudioMixerGroup`
+- `Prewarm` … プールの事前生成数(既定 8)
+
+`AudioManager` は `Awake` で `DontDestroyOnLoad` になり、`AudioManager.Instance` からアクセスできます。プレハブ `Assets/AudioManager/AudioManager.prefab` と `AudioMixer.mixer` を利用すると設定済みの状態から始められます。
+
+## 使い方
+
+### SE の再生
 
 ```csharp
-// ゲーム開始時に自動で初期化される
-// SEManager.Instance と BGMManager.Instance が利用可能
+using Yuffter.AudioManager;
+
+// 完了を待つ場合
+await AudioManager.Instance.PlaySe(Se.ButtonClick);
+
+// 撃ちっぱなし(await しない)
+AudioManager.Instance.PlaySe(Se.ButtonClick);
 ```
 
-### 2. Addressablesの設定
-
-オーディオファイルをAddressablesに登録してください：
-
-1. **Addressables Groups**を作成
-   - `AudioManagerSE` グループ（SE用）
-   - `AudioManagerBGM` グループ（BGM用）
-  
-2. **Addressables Labels**を作成
-  - `BGM`ラベル
-  - `SE`ラベル
-
-4. **オーディオファイルを追加**
-   - mp3, wav, ogg ファイルを各グループに追加
-   - アドレス名を設定（例: "ButtonClick", "TitleTheme"）
-   - BGMには`BGM`ラベル, SEには`SE`ベルを付与
-
-### 3. パスの自動生成
-
-メニューから実行してパスクラスを生成：
-
-```
-Tools > AudioManager > Update All Audio Paths
-```
-
-これにより以下のクラスが自動生成されます：
-- `SEPath.cs`
-- `BGMPath.cs`
-
-## 🎮 使い方
-
-### SE（効果音）の再生
+### BGM の再生
 
 ```csharp
-using Yuffter.AudioManager.SE;
+// 既定でループ再生。同じ BGM が再生中なら何もしない
+await AudioManager.Instance.PlayBgm(Bgm.TitleTheme);
 
-// SE再生
-SEManager.Instance.Play("ButtonClick");
+// 別の BGM に切り替えると、旧曲は自動でフェードアウト＆解放される
+await AudioManager.Instance.PlayBgm(Bgm.BattleTheme);
 
-// または生成されたパスクラスを使用
-SEManager.Instance.Play(SEPath.ButtonClick);
+// 停止(フェードアウト秒数を指定可能)
+AudioManager.Instance.StopBgm(fade: 1f);
 
-// SE停止
-SEManager.Instance.Stop("ButtonClick");
-
-// 全SE停止
-SEManager.Instance.StopAll();
+// 再生中か確認
+bool playing = AudioManager.Instance.IsBgmPlaying(Bgm.TitleTheme);
 ```
 
-### BGM（背景音楽）の再生
+### 再生パラメータ (`PlayParams`)
+
+`PlayParams` で 1 回の再生を細かく制御できます。未指定の項目はエントリの既定値が使われます。
 
 ```csharp
-using Yuffter.AudioManager.BGM;
+var p = PlayParams.Default;
+p.Volume = 0.8f;
+p.Pitch = 1.2f;
+p.FadeIn = 0.5f;          // フェードイン秒数
+p.Delay = 0.1f;           // 再生開始の遅延
+p.Loop = true;            // null ならエントリの既定
+p.SpatialBlend = 1f;      // -1 ならエントリの既定(0=2D, 1=3D)
+p.Position = worldPos;    // 3D 音源の位置
+p.Follow = targetTransform; // 指定すると位置を追従
 
-// BGM再生
-BGMManager.Instance.Play("TitleTheme");
+await AudioManager.Instance.PlaySe(Se.Explosion, p);
+```
 
-// または生成されたパスクラスを使用
-BGMManager.Instance.Play(BGMPath.TitleTheme);
+### 再生中の音の操作 (`AudioHandle`)
 
-// BGM停止
-BGMManager.Instance.StopAll();
+`PlaySe` / `PlayBgm` は再生中の 1 音を指す `AudioHandle` を返します。プールでソースが再利用されると、そのハンドルは自動的に無効(no-op)になります。
 
-// 一時停止・再開
-BGMManager.Instance.PauseAll();
-BGMManager.Instance.ResumeAll();
+```csharp
+var handle = await AudioManager.Instance.PlaySe(Se.Loop);
+
+if (handle.IsPlaying) { /* ... */ }
+handle.SetVolume(0.5f);
+handle.FadeOut(1f);   // フェードアウトして停止・解放
+handle.Stop();        // 即時停止
 ```
 
 ### 音量制御
 
-```csharp
-// 音量設定（0.0f〜1.0f）
-SEManager.Instance.SetVolume(0.8f);
-BGMManager.Instance.SetVolume(0.6f);
-
-// 音量設定の保存・読み込み
-AudioSettings.Instance.SetSEVolume(0.8f);
-AudioSettings.Instance.SetBGMVolume(0.6f);
-```
-
-## 🎛️ 設定
-
-### AudioSettings
-
-音量設定やプール数は `AudioSettings` で管理されます：
+Master / SE / BGM をリニア値(0〜1)で設定します。内部で dB に変換して `AudioMixer` に反映され、`PlayerPrefs` に自動保存・次回起動時に自動復元されます。
 
 ```csharp
-// プール数設定
-AudioSettings.Instance.SEAudioSourcePoolSize = 10;
-AudioSettings.Instance.BGMAudioSourcePoolSize = 5;
+AudioManager.Instance.SetMasterVolume(1.0f);
+AudioManager.Instance.SetSeVolume(0.8f);
+AudioManager.Instance.SetBgmVolume(0.6f);
 
-// 音量設定（PlayerPrefsに自動保存）
-AudioSettings.Instance.SetMasterVolume(1.0f);
-AudioSettings.Instance.SetSEVolume(0.8f);
-AudioSettings.Instance.SetBGMVolume(0.6f);
+// 現在値の参照
+float m = AudioManager.Instance.Volume.Master;
 ```
 
-## 📁 ファイル構成
+> リニア 0〜1 → dB 変換は `20 * log10(value)` を使用し、0 付近は −80dB(無音)にクランプしています。
 
-```
-AudioManager/
-├── Core/
-│   ├── AudioPlayer.cs          # オーディオプレイヤー
-│   ├── AudioManagerBase.cs     # 基底クラス
-│   ├── IAudioManager.cs        # インターフェース
-│   ├── SingletonMonoBehaviour.cs # シングルトン基底
-│   └── AudioPathGenerator.cs   # パス自動生成
-├── SE/
-│   ├── SEManager.cs            # SE管理
-│   └── SEPath.cs               # SE パス（自動生成）
-├── BGM/
-│   ├── BGMManager.cs           # BGM管理
-│   └── BGMPath.cs              # BGM パス（自動生成）
-├── Settings/
-│   └── AudioSettings.cs       # 設定管理
-└── Test/
-    └── AudioPlayTest.cs        # テストスクリプト
-```
-
-## 🔧 高度な使用例
-
-### カスタムAudioPlayer
+### ロード制御
 
 ```csharp
-using Yuffter.AudioManager.Core;
+// よく使う SE を事前ロードして初回再生の遅延をなくす
+await AudioManager.Instance.Preload(Se.ButtonClick, Se.Cancel);
 
-// 独自のAudioPlayerを作成
-AudioSource audioSource = GetComponent<AudioSource>();
-AudioPlayer player = new AudioPlayer(audioSource);
-
-// 詳細パラメータで再生
-player.Play(audioClip, volume: 0.8f, pitch: 1.2f, loop: true);
+// SE のクリップキャッシュをまとめて解放(SE は再生後もキャッシュ保持されるため)
+AudioManager.Instance.UnloadSeBank();
 ```
 
-### 複数BGMの管理
+## アーキテクチャ
 
-```csharp
-// BGMの切り替え
-BGMManager.Instance.StopAll();
-BGMManager.Instance.Play(BGMPath.BattleTheme);
+| クラス | 役割 |
+|--------|------|
+| `AudioManager` | 中心となる `MonoBehaviour`。再生 API・Addressables ロード/キャッシュ・BGM の状態管理。 |
+| `AudioLibrary` (SO) | 音源定義 `AudioEntry` のリスト。安定 ID を採番。 |
+| `AudioEnumGenerator` (Editor) | ライブラリから `Se` / `Bgm` enum を生成。保存時に自動実行。 |
+| `AudioPool` | `AudioSourceController` のスタックベースのプール。 |
+| `AudioSourceController` | プールされた `AudioSource` 1 個を管理。フェード・追従・自動解放。 |
+| `AudioHandle` / `PlayParams` | 再生中の音への軽量ハンドルと再生パラメータ(いずれも struct)。 |
+| `VolumeController` | リニア↔dB 変換と `AudioMixer` 反映、`PlayerPrefs` 保存。 |
 
-// フェード機能（今後実装予定）
-// BGMManager.Instance.FadeOut(1.0f);
-// BGMManager.Instance.FadeIn(BGMPath.BattleTheme, 1.0f);
-```
+### 設計上のポイント
 
-## 🎯 ベストプラクティス
+- **再生 API が async なのは Addressables のロードが非同期だから。** クリップの実体はメモリに載っていないため、`PlaySe` / `PlayBgm` はロード完了後に再生します。2 回目以降はキャッシュから即返ります。待ちたくない場合は `await` を省けます。
+- **BGM はシングルボイス。** `AudioManager` が現在の BGM を追跡し、切り替え時に旧曲をフェードアウトしてクリップを解放します。SE は多重再生されるポリフォニックなボイスです。
+- **ハンドルは世代でガード。** `AudioSourceController` は再生・解放のたびに `Generation` を進め、`AudioHandle` は取得時の世代と一致するときだけ有効です。プールで再利用済みのソースへの操作は安全に無視されます。
 
-### 1. パフォーマンス最適化
+## 注意
 
-```csharp
-// よく使用されるSEは事前に読み込み
-SEManager.Instance.Play(SEPath.ButtonClick);
-
-// 不要になったら解放
-SEManager.Instance.Release();
-BGMManager.Instance.Release();
-```
-
-### 2. エラーハンドリング
-
-```csharp
-// 存在しないパスを指定した場合、警告ログが出力される
-SEManager.Instance.Play("NonExistentSound");
-// Warning: Failed to load AudioClip at path: NonExistentSound
-```
-
-### 3. メモリ管理
-
-```csharp
-// シーン切り替え時に不要なオーディオを解放
-private void OnDestroy()
-{
-    SEManager.Instance.Release();
-    BGMManager.Instance.Release();
-}
-```
-
-## 🐛 トラブルシューティング
-
-### よくある問題と解決方法
-
-1. **音が再生されない**
-   - Addressablesグループにオーディオファイルが登録されているか確認
-   - パスの名前が正しいか確認
-   - オーディオファイルの形式がサポートされているか確認（mp3, wav, ogg）
-
-2. **パスクラスが生成されない**
-   - `Tools > AudioManager > Update All Audio Paths` を実行
-   - Addressablesのグループ名が正しいか確認（`AudioManagerSE`, `AudioManagerBGM`）
-
-3. **音量が変更されない**
-   - `AudioSettings.Instance.SetXXXVolume()` を使用
-   - マスター音量が0になっていないか確認
-
-## 📝 今後の拡張予定
-
-- クロスフェード機能
-- 3D音響対応
-- 音声圧縮設定の最適化
-- リアルタイム音量調整UI
-
-## 🤝 貢献
-
-このプロジェクトへの貢献を歓迎します。Issues や Pull Requests をお気軽にお送りください。
+- 本ライブラリには CLI ビルドスクリプトはありません。Unity エディタ(6000.0.41f1)で開いて利用します。
+- `AudioClip` を再生するには、必ず `AudioLibrary` のエントリと Addressables 参照を設定してください。
