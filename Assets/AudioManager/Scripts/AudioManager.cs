@@ -9,10 +9,13 @@ namespace Yuffter.AudioManager
 {
     public sealed class AudioManager : MonoBehaviour
     {
-        public static AudioManager I { get; private set; }
+        public static AudioManager Instance { get; private set; }
 
         [SerializeField]
         AudioLibrary _library;
+
+        [SerializeField]
+        AudioMixer _mixer;
 
         [SerializeField]
         AudioMixerGroup _seGroup,
@@ -20,6 +23,8 @@ namespace Yuffter.AudioManager
 
         [SerializeField]
         int _prewarm = 8;
+
+        public VolumeController Volume { get; private set; }
 
         AudioPool _pool;
         Dictionary<int, AudioEntry> _byId;
@@ -32,9 +37,11 @@ namespace Yuffter.AudioManager
 
         void Awake()
         {
-            I = this;
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
             _pool = new AudioPool(transform, _prewarm);
             _byId = _library.Entries.ToDictionary(e => e.Id);
+            Volume = new VolumeController(_mixer);
         }
 
         // ---------- 再生 ----------
@@ -85,6 +92,10 @@ namespace Yuffter.AudioManager
         }
 
         public bool IsBgmPlaying(Bgm id) => _currentBgmId == (int)id && _currentBgm.IsPlaying;
+
+        public void SetMasterVolume(float value) => Volume.SetMaster(value);
+        public void SetSeVolume(float value) => Volume.SetSe(value);
+        public void SetBgmVolume(float value) => Volume.SetBgm(value);
 
         // ---------- Addressables ロード／キャッシュ ----------
         async Awaitable<AudioClip> LoadClip(AudioEntry e)
