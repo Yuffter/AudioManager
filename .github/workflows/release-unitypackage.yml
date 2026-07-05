@@ -1,0 +1,38 @@
+name: Release UnityPackage
+
+# v1.2.3 のようなバージョンタグを push すると発火する
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # Release 作成に必要
+
+jobs:
+  build:
+    name: Build & Release .unitypackage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # .unitypackage に含めるアセットの .meta 一覧を作る
+      # （フォルダ自身の .meta も入れないと階層が復元されない）
+      - name: Collect meta files
+        run: |
+          echo "Assets/AudioManager.meta" > metaList.txt
+          find Assets/AudioManager -name '*.meta' >> metaList.txt
+
+      # Unity 本体・ライセンス不要でパッケージ化
+      - name: Create .unitypackage
+        uses: pCYSl5EDgo/create-unitypackage@v1.2.3
+        with:
+          package-path: AudioManager-${{ github.ref_name }}.unitypackage
+          include-files: metaList.txt
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AudioManager-${{ github.ref_name }}.unitypackage
+          generate_release_notes: true
