@@ -22,9 +22,9 @@ namespace Yuffter.AudioManager
             Source.playOnAwake = false;
         }
 
+        // p は AudioManager.PlayInternal で既定値を解決済み
         public AudioHandle Play(
             AudioClip clip,
-            AudioEntry e,
             in PlayParams p, // 読み取り専用の参照渡し
             AudioMixerGroup group
         )
@@ -33,21 +33,22 @@ namespace Yuffter.AudioManager
             CancelFade();
 
             Source.clip = clip;
-            Source.pitch = p.Pitch;
-            Source.loop = p.Loop ?? e.Loop;
+            Source.pitch = p.Pitch ?? 1f;
+            Source.loop = p.Loop ?? false;
             Source.outputAudioMixerGroup = group;
-            Source.spatialBlend = p.SpatialBlend < 0 ? e.SpatialBlend : p.SpatialBlend;
+            Source.spatialBlend = p.SpatialBlend ?? 0f;
 
             _follow = p.Follow;
             transform.position = p.Follow ? p.Follow.position : p.Position;
 
+            float volume = p.Volume ?? 1f;
             if (p.FadeIn > 0f)
             {
                 Source.volume = 0f;
-                _ = FadeTo(p.Volume, p.FadeIn);
+                _ = FadeTo(volume, p.FadeIn);
             }
             else
-                Source.volume = p.Volume;
+                Source.volume = volume;
 
             Source.PlayDelayed(Mathf.Max(0, p.Delay));
 
@@ -93,7 +94,7 @@ namespace Yuffter.AudioManager
         async Awaitable AutoReleaseWhenDone(AudioClip clip, PlayParams p)
         {
             int gen = Generation;
-            float wait = p.Delay + clip.length / Mathf.Max(0.01f, Mathf.Abs(p.Pitch));
+            float wait = p.Delay + clip.length / Mathf.Max(0.01f, Mathf.Abs(p.Pitch ?? 1f));
             try
             {
                 await Awaitable.WaitForSecondsAsync(wait, destroyCancellationToken);

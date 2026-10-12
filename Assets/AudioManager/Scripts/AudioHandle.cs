@@ -5,23 +5,21 @@ namespace Yuffter.AudioManager
 {
     public struct PlayParams
     {
-        public float Volume,
-            Pitch,
-            FadeIn,
-            Delay,
-            SpatialBlend;
+        // null は AudioLibrary のエントリ既定値を使う合図。
+        // 構造体は new PlayParams() で全フィールドが既定値になるため、
+        // 「未指定」を 0 や -1 で表すと無音・強制2Dの事故になる
+        public float? Volume;
+        public float? Pitch;
+        public float? SpatialBlend;
         public bool? Loop;
+
+        public float FadeIn;
+        public float Delay;
         public Vector3 Position;
         public Transform Follow; // 指定すると追従（移動する音源）
 
-        public static PlayParams Default =>
-            new()
-            {
-                Volume = 1,
-                Pitch = 1,
-                SpatialBlend = -1,
-            };
-        // SpatialBlend = -1 はエントリのデフォルト値を使う合図
+        /// <summary>全ての値を AudioLibrary の既定値に任せる。</summary>
+        public static PlayParams Default => new();
     }
 
     // 再生中の1音を指す軽量ハンドル

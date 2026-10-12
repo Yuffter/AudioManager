@@ -69,7 +69,7 @@ Tools > AudioManager > Generate Enums
 - `Se Group` / `Bgm Group` … ミキサーの各 `AudioMixerGroup`
 - `Prewarm` … プールの事前生成数(既定 8)
 
-`AudioManager` は `Awake` で `DontDestroyOnLoad` になり、`AudioManager.Instance` からアクセスできます。プレハブ `Assets/AudioManager/AudioManager.prefab` と `AudioMixer.mixer` を利用すると設定済みの状態から始められます。
+`AudioManager` は `Awake` で `DontDestroyOnLoad` になり、`AudioManager.Instance` からアクセスできます。シーン遷移などで 2 つ目の `AudioManager` が生成された場合、後から来た方は自動で破棄されます(Enter Play Mode Options で Domain Reload を無効にしていても `Instance` は再生開始時にリセットされます)。プレハブ `Assets/AudioManager/AudioManager.prefab` と `AudioMixer.mixer` を利用すると設定済みの状態から始められます。
 
 ## 使い方
 
@@ -88,11 +88,14 @@ AudioManager.Instance.PlaySe(Se.ButtonClick);
 ### BGM の再生
 
 ```csharp
-// 既定でループ再生。同じ BGM が再生中なら何もしない
+// 既定でループ再生。同じ BGM が再生中(またはロード中)なら何もしない
 await AudioManager.Instance.PlayBgm(Bgm.TitleTheme);
 
-// 別の BGM に切り替えると、旧曲は自動でフェードアウト＆解放される
+// 別の BGM に切り替えると、旧曲は自動でフェードアウトし、鳴り終わってから解放される
 await AudioManager.Instance.PlayBgm(Bgm.BattleTheme);
+
+// 旧曲のフェードアウト秒数を指定(既定 1 秒)
+await AudioManager.Instance.PlayBgm(Bgm.BossTheme, fadeOut: 2f);
 
 // 停止(フェードアウト秒数を指定可能)
 AudioManager.Instance.StopBgm(fade: 1f);
@@ -101,23 +104,31 @@ AudioManager.Instance.StopBgm(fade: 1f);
 bool playing = AudioManager.Instance.IsBgmPlaying(Bgm.TitleTheme);
 ```
 
+- `PlayBgm` は毎フレーム呼んでも鳴り直しません。クリップのロード待ちの間に同じ BGM を再要求しても無視されます。
+- ロード待ちの間に `StopBgm` や別 BGM への切り替えが行われた場合、ロード完了後もその BGM は再生されず、無効な `AudioHandle` (`default`) が返ります。
+
 ### 再生パラメータ (`PlayParams`)
 
-`PlayParams` で 1 回の再生を細かく制御できます。未指定の項目はエントリの既定値が使われます。
+`PlayParams` で 1 回の再生を細かく制御できます。`Volume` / `Pitch` / `SpatialBlend` / `Loop` は nullable で、**`null`(未指定)の項目は `AudioLibrary` のエントリ既定値**が使われます。`PlayParams.Default`(= `new PlayParams()`)は全項目をエントリ既定値に任せます。
 
 ```csharp
 var p = PlayParams.Default;
-p.Volume = 0.8f;
-p.Pitch = 1.2f;
+p.Volume = 0.8f;          // null ならエントリの既定
+p.Pitch = 1.2f;           // null ならエントリの既定
+p.SpatialBlend = 1f;      // null ならエントリの既定(0=2D, 1=3D)
+p.Loop = true;            // null ならエントリの既定(BGM は null のとき true)
 p.FadeIn = 0.5f;          // フェードイン秒数
 p.Delay = 0.1f;           // 再生開始の遅延
-p.Loop = true;            // null ならエントリの既定
-p.SpatialBlend = 1f;      // -1 ならエントリの既定(0=2D, 1=3D)
 p.Position = worldPos;    // 3D 音源の位置
 p.Follow = targetTransform; // 指定すると位置を追従
 
 await AudioManager.Instance.PlaySe(Se.Explosion, p);
+
+// 一部だけ上書きする場合はオブジェクト初期化子が便利
+await AudioManager.Instance.PlaySe(Se.Explosion, new PlayParams { Pitch = 0.9f });
 ```
+
+> 以前のバージョンの `SpatialBlend = -1`(エントリ既定値の合図)は廃止されました。未指定にしたい項目は `null` のままにしてください。
 
 ### 再生中の音の操作 (`AudioHandle`)
 
@@ -172,7 +183,9 @@ AudioManager.Instance.UnloadSeBank();
 ### 設計上のポイント
 
 - **再生 API が async なのは Addressables のロードが非同期だから。** クリップの実体はメモリに載っていないため、`PlaySe` / `PlayBgm` はロード完了後に再生を開始します。`await` が待つのは**クリップのロード完了まで**で、再生の終了は待ちません(戻り値は再生開始直後の `AudioHandle`)。2 回目以降はキャッシュから即返るため、待ちたくない場合は `await` を省けます。
-- **BGM はシングルボイス。** `AudioManager` が現在の BGM を追跡し、切り替え時に旧曲をフェードアウトしてクリップを解放します。SE は多重再生されるポリフォニックなボイスです。
+- **BGM はシングルボイス。** `AudioManager` が現在の BGM を追跡し、切り替え時に旧曲をフェードアウトします。旧曲のクリップはフェードアウトが終わってから解放されるため、音が途中で途切れません(待機中に同じ BGM へ戻った場合は解放しません)。SE は多重再生されるポリフォニックなボイスです。
+- **既定値の解決は `AudioManager` で一括。** `PlayParams` の `null` 項目は `PlayInternal` でエントリ既定値に置き換えてから `AudioSourceController` に渡されます。
+- **失敗時は警告ログ。** `AudioLibrary` に存在しない ID や Addressables のロード失敗時は `Debug.LogWarning` を出し、無効な `AudioHandle` を返します(ハンドル操作は no-op になります)。
 - **ハンドルは世代でガード。** `AudioSourceController` は再生・解放のたびに `Generation` を進め、`AudioHandle` は取得時の世代と一致するときだけ有効です。プールで再利用済みのソースへの操作は安全に無視されます。
 
 ## 注意
